@@ -42,6 +42,7 @@
             <el-radio-group v-model="form.role" style="width: 500px; display: flex; justify-content: space-around;">
               <el-radio value="admin" style="font-size: 14px;">管理员</el-radio>
               <el-radio value="inspector" style="font-size: 14px;">巡检人员</el-radio>
+              <el-radio value="user" style="font-size: 14px;">普通用户</el-radio>
             </el-radio-group>
           </el-form-item>
 
@@ -75,7 +76,7 @@ const loading = ref(false)
 const form = reactive({
   username: '',
   password: '',
-  role: 'admin'
+  role: 'user'
 })
 
 const handleLogin = async () => {
@@ -92,6 +93,13 @@ const handleLogin = async () => {
     })
 
     if (res.data.code === 200) {
+      // 后端返回的真实角色
+      const serverRole = res.data.data.role || res.data.data.user?.role
+      // 验证：用户选择的身份必须与后端角色一致
+      if (serverRole && serverRole !== form.role) {
+        ElMessage.error('请输入正确的用户和密码以及身份')
+        return
+      }
       localStorage.setItem('token', res.data.data.token)
       localStorage.setItem('username', form.username)
       localStorage.setItem('role', form.role)
@@ -193,4 +201,4 @@ const handleLogin = async () => {
   color: #666;
   margin-bottom: 30px;
 }
-</style>  
+</style>

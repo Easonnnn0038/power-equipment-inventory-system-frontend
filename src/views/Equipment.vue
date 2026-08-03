@@ -116,6 +116,7 @@
 </template>
 
 <script setup>
+const userRole = localStorage.getItem('role') || 'user'
 /**
  * 设备台账管理脚本逻辑
  * 

@@ -51,11 +51,11 @@
       <p class="search-hint">我们今天从哪里开始...</p>
       <div class="search-bar">
         <el-icon :size="20" color="#9ca3af"><Search /></el-icon>
-        <input 
-          type="text" 
-          class="search-input" 
+        <input
+          type="text"
+          class="search-input"
           v-model="searchKeyword"
-          placeholder="搜索设备、巡检记录、告警信息..." 
+          placeholder="搜索设备、巡检记录、告警信息..."
           @keyup.enter="handleSearch"
         />
         <button class="search-btn" @click="handleSearch">搜索</button>
@@ -73,28 +73,18 @@
           </div>
           <a class="view-more">查看更多</a>
         </div>
-        <div class="notice-list">
-          <div class="notice-item">
-            <div class="notice-dot notice-dot-blue"></div>
+        <div class="notice-list" v-if="noticeList.length > 0">
+          <div class="notice-item" v-for="(item, index) in noticeList" :key="index">
+            <div class="notice-dot" :class="item.dotClass"></div>
             <div class="notice-content">
-              <div class="notice-text">系统将于本周五凌晨 02:00 进行例行维护</div>
-              <div class="notice-date">2026-07-30</div>
+              <div class="notice-text">{{ item.text }}</div>
+              <div class="notice-date">{{ item.date }}</div>
             </div>
           </div>
-          <div class="notice-item">
-            <div class="notice-dot notice-dot-green"></div>
-            <div class="notice-content">
-              <div class="notice-text">新版巡检标准已发布，请及时查阅</div>
-              <div class="notice-date">2026-07-28</div>
-            </div>
-          </div>
-          <div class="notice-item">
-            <div class="notice-dot notice-dot-orange"></div>
-            <div class="notice-content">
-              <div class="notice-text">高温天气预警，请加强户外设备巡检频次</div>
-              <div class="notice-date">2026-07-27</div>
-            </div>
-          </div>
+        </div>
+        <div class="notice-empty" v-else>
+          <el-icon :size="48" color="#d1d5db"><Bell /></el-icon>
+          <p>当前没有通知</p>
         </div>
       </div>
 
@@ -120,7 +110,7 @@
         </div>
         <div class="todo-empty" v-else>
           <el-icon :size="48" color="#d1d5db"><Tickets /></el-icon>
-          <p>暂无待办事项</p>
+          <p>还没有任务待办</p>
         </div>
         <button class="todo-btn">查看全部待办</button>
       </div>
@@ -162,6 +152,7 @@ const stats = ref({
   alertCount: 0
 })
 
+const noticeList = ref([])
 const todoList = ref([])
 
 // 显示在首页的待办列表（最多5条）
@@ -256,14 +247,9 @@ async function loadData() {
     // 合并：系统待办 + 后端待办消息 + 本地待办消息
     todoList.value = [...systemTodos, ...msgTodos, ...mergedLocalTodos]
   } catch {
-    stats.value = { totalEquipment: 3, onlineEquipment: 2, todayInspections: 0, alertCount: 0 }
-    // 合并：默认待办 + 后端待办消息 + 本地待办消息
-    const defaultTodos = [
-      { name: '待巡检设备', description: '需在本周内完成' },
-      { name: '待确认异常', description: '等待处理' },
-      { name: '本周巡检计划', description: '请及时完成' }
-    ]
-    todoList.value = [...defaultTodos, ...msgTodos, ...mergedLocalTodos]
+    stats.value = { totalEquipment: 0, onlineEquipment: 0, todayInspections: 0, alertCount: 0 }
+    // 后端不可用时，仅合并后端待办消息 + 本地待办消息
+    todoList.value = [...msgTodos, ...mergedLocalTodos]
   }
 }
 
@@ -485,6 +471,19 @@ watch(todoRefreshTrigger, () => { loadData() })
 .notice-date {
   font-size: 13px;
   color: #9ca3af;
+}
+.notice-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 0;
+  color: #9ca3af;
+}
+.notice-empty p {
+  margin: 0;
+  font-size: 14px;
 }
 
 /* 待办事项 */

@@ -117,6 +117,7 @@ import { getUnreadCount } from '@/api/message'
 const router = useRouter()
 const route = useRoute()
 const username = ref(localStorage.getItem('username') || 'admin')
+const userRole = ref(localStorage.getItem('role') || 'user')
 const activeMenu = ref(route.path)
 const showSubmenu = ref(false)
 const currentSubmenuChildren = ref([])
@@ -140,28 +141,34 @@ provide('refreshTodoList', () => {
 
 provide('todoRefreshTrigger', todoRefreshTrigger)
 
-const navItems = [
-  { path: '/admin/home', label: '首页', icon: HomeFilled },
-  { path: '/admin/equipment', label: '设备台账', icon: Monitor },
-  { path: 'inspection', label: '巡检记录', icon: Document, children: [
+// 根据角色过滤导航菜单
+const allNavItems = [
+  { path: '/admin/home', label: '首页', icon: HomeFilled, roles: ['admin', 'inspector', 'user'] },
+  { path: '/admin/equipment', label: '设备台账', icon: Monitor, roles: ['admin', 'inspector'] },
+  { path: 'inspection', label: '巡检记录', icon: Document, roles: ['admin', 'inspector'], children: [
     { path: '/admin/inspection', label: '巡检列表' },
     { path: '/admin/inspection/create', label: '新建巡检' }
   ]},
-  { path: 'statistics', label: '数据统计', icon: DataAnalysis, children: [
+  { path: 'statistics', label: '数据统计', icon: DataAnalysis, roles: ['admin', 'inspector', 'user'], children: [
     { path: '/admin/statistics', label: '统计概览' }
   ]},
-  { path: 'settings', label: '系统设置', icon: Setting, children: [
+  { path: 'settings', label: '系统设置', icon: Setting, roles: ['admin'], children: [
     { path: '/admin/settings/user', label: '用户管理' },
     { path: '/admin/settings/role', label: '角色管理' }
   ]}
 ]
 
-const bottomButtons = [
-  { action: 'ai', label: 'AI助手', icon: ChatDotRound, handler: handleAiChat },
-  { action: 'feedback', label: '意见反馈', icon: EditPen, handler: handleFeedback },
-  { action: 'account', label: '账户设置', icon: User, handler: handleAccountSettings },
-  { action: 'announcement', label: '消息', icon: Bell, handler: handleAnnouncements }
+const navItems = allNavItems.filter(item => item.roles.includes(userRole.value))
+
+// 根据角色过滤底部按钮（账户设置仅管理员可见）
+const allBottomButtons = [
+  { action: 'ai', label: 'AI助手', icon: ChatDotRound, handler: handleAiChat, roles: ['admin', 'inspector', 'user'] },
+  { action: 'feedback', label: '意见反馈', icon: EditPen, handler: handleFeedback, roles: ['admin', 'inspector', 'user'] },
+  { action: 'account', label: '账户设置', icon: User, handler: handleAccountSettings, roles: ['admin'] },
+  { action: 'announcement', label: '消息', icon: Bell, handler: handleAnnouncements, roles: ['admin', 'inspector', 'user'] }
 ]
+
+const bottomButtons = allBottomButtons.filter(btn => btn.roles.includes(userRole.value))
 
 function isChildActive(item) {
   if (!item.children) return false
@@ -169,6 +176,11 @@ function isChildActive(item) {
 }
 
 function handleSliderClick(item) {
+  // 检查角色权限
+  if (item.roles && !item.roles.includes(userRole.value)) {
+    ElMessage.warning('该身份暂不支持此操作')
+    return
+  }
   if (item.children) {
     const sliderItems = document.querySelectorAll('.slider-item')
     const targetIndex = navItems.findIndex(n => n.path === item.path)
@@ -186,6 +198,12 @@ function handleSliderClick(item) {
 }
 
 function handleSubmenuClick(child) {
+  // 检查父级角色权限
+  const parent = allNavItems.find(n => n.children && n.children.some(c => c.path === child.path))
+  if (parent && parent.roles && !parent.roles.includes(userRole.value)) {
+    ElMessage.warning('该身份暂不支持此操作')
+    return
+  }
   activeMenu.value = child.path
   showSubmenu.value = false
   router.push(child.path)
@@ -200,7 +218,13 @@ async function handleAiChat() {
   showAiChat.value = !showAiChat.value
 }
 async function handleFeedback() { ElMessage.info('意见反馈功能开发中') }
-async function handleAccountSettings() { ElMessage.info('账户设置功能开发中') }
+async function handleAccountSettings() {
+  if (userRole.value !== 'admin') {
+    ElMessage.warning('该身份暂不支持此操作')
+    return
+  }
+  router.push('/admin/settings/user')
+}
 
 /**
  * 打开消息面板
