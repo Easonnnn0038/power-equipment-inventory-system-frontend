@@ -18,13 +18,14 @@
 -->
 
 <template>
-  <!-- 聊天面板根容器，绝对定位在右下角 -->
-  <div v-if="visible" class="ai-chat-wrapper">
+  <transition name="ai-chat-pop">
+    <!-- 聊天面板根容器，绝对定位在右下角 -->
+    <div v-if="visible" class="ai-chat-wrapper">
     <div class="ai-chat-panel">
       <!-- 顶部标题栏：显示标题 + 关闭按钮 -->
       <div class="ai-chat-header">
         <div class="ai-chat-title">
-          <el-icon :size="18" color="#4a90d9"><ChatDotRound /></el-icon>
+          <el-icon :size="18" :style="{ color: 'var(--brand-secondary)' }"><ChatDotRound /></el-icon>
           <span>AI 助手</span>
         </div>
         <el-icon class="close-btn" :size="20" @click="closePanel"><Close /></el-icon>
@@ -96,7 +97,8 @@
         />
       </div>
     </div>
-  </div>
+    </div>
+  </transition>
 </template>
 
 <script setup>
@@ -197,7 +199,7 @@ async function sendMessage() {
     // 请求失败时，在界面上显示错误提示
     const errorMsg = 'AI 助手暂时无法响应，请稍后再试。'
     messages.value.push({ role: 'ai', content: errorMsg })
-    ElMessage.error(errorMsg)
+    ElMessage.error({ message: `AI 助手暂时无法响应：${errorMsg}\n💡 建议检查网络，5 秒后重试；或换用更具体的关键词（如"2026年8月巡检异常统计"）`, duration: 4200, showClose: true, grouping: true })
   } finally {
     // 无论成功失败都要关闭 loading，并滚动到底部
     loading.value = false
@@ -242,7 +244,7 @@ function handleKeyDown(e) {
 .ai-chat-panel {
   width: 420px;
   height: 560px;
-  background: #ffffff;
+  background: var(--surface);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   display: flex;
@@ -254,8 +256,8 @@ function handleKeyDown(e) {
 .ai-chat-header {
   height: 52px;
   padding: 0 16px;
-  background: linear-gradient(135deg, #4a90d9, #357abd);
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--brand-secondary), var(--brand-primary));
+  color: var(--text-inverse);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -275,7 +277,7 @@ function handleKeyDown(e) {
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
-  transition: background 0.2s;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease);
 }
 .close-btn:hover {
   background: rgba(255, 255, 255, 0.2);
@@ -286,7 +288,7 @@ function handleKeyDown(e) {
   flex: 1;
   padding: 16px;
   overflow-y: auto;
-  background: #f5f7fa;
+  background: var(--surface-subtle);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -294,10 +296,10 @@ function handleKeyDown(e) {
 
 /* 空状态欢迎语 */
 .welcome-tip {
-  background: #ffffff;
+  background: var(--surface);
   padding: 16px;
   border-radius: 8px;
-  color: #909399;
+  color: var(--text-4);
   font-size: 14px;
   line-height: 1.8;
   text-align: center;
@@ -336,18 +338,18 @@ function handleKeyDown(e) {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: var(--text-inverse);
   flex-shrink: 0;
 }
 
 /* AI 头像：深灰蓝 */
 .ai-avatar {
-  background: #607d8b;
+  background: var(--text-3);
 }
 
 /* 用户头像：主题蓝 */
 .user-avatar {
-  background: #4a90d9;
+  background: var(--brand-secondary);
 }
 
 /* 消息气泡基础样式 */
@@ -363,16 +365,16 @@ function handleKeyDown(e) {
 
 /* AI 气泡：白底 + 灰字 */
 .ai-bubble {
-  background: #ffffff;
-  color: #303133;
-  border: 1px solid #ebeef5;
+  background: var(--surface);
+  color: var(--text-1);
+  border: 1px solid var(--border-soft);
   border-top-left-radius: 2px;
 }
 
 /* 用户气泡：蓝底 + 白字 */
 .user-bubble {
-  background: #4a90d9;
-  color: #ffffff;
+  background: var(--brand-secondary);
+  color: var(--text-inverse);
   border-top-right-radius: 2px;
 }
 
@@ -387,13 +389,13 @@ function handleKeyDown(e) {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #909399;
-  animation: bounce 1.4s infinite ease-in-out both;
+  background: var(--text-4);
+  animation: dot-pulse 1.4s var(--motion-ease) infinite both;
 }
 .thinking .dot:nth-child(1) { animation-delay: -0.32s; }
 .thinking .dot:nth-child(2) { animation-delay: -0.16s; }
 
-@keyframes bounce {
+@keyframes dot-pulse {
   0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
   40% { transform: scale(1); opacity: 1; }
 }
@@ -401,8 +403,8 @@ function handleKeyDown(e) {
 /* ---------- 底部输入区域 ---------- */
 .ai-chat-input {
   padding: 12px;
-  border-top: 1px solid #ebeef5;
-  background: #ffffff;
+  border-top: 1px solid var(--border-soft);
+  background: var(--surface);
   display: flex;
   gap: 8px;
   align-items: center;
@@ -433,10 +435,16 @@ function handleKeyDown(e) {
   width: 6px;
 }
 .ai-chat-messages::-webkit-scrollbar-thumb {
-  background: #c0c4cc;
+  background: var(--text-4);
   border-radius: 3px;
 }
 .ai-chat-messages::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* ---------- 聊天面板浮层入场（Exit faster） ---------- */
+.ai-chat-pop-enter-active { transition: opacity var(--motion-dur-slow) var(--motion-ease), transform var(--motion-dur-slow) var(--motion-ease); }
+.ai-chat-pop-leave-active { transition: opacity var(--motion-dur-mid) var(--motion-ease-in), transform var(--motion-dur-mid) var(--motion-ease-in); }
+.ai-chat-pop-enter-from { opacity: 0; transform: translateY(28px) scale(0.96); }
+.ai-chat-pop-leave-to { opacity: 0; transform: translateY(16px) scale(0.98); }
 </style>

@@ -1,4 +1,6 @@
 <template>
+  <!-- Skip Link：WCAG 2.4.1 Bypass Blocks，键盘 Tab 首项会命中，跳至主内容区 -->
+  <a class="skip-link" href="#main-content">跳至主内容</a>
   <el-container style="height: 100vh; width: 100%;">
     <el-header class="header" height="60px">
       <div class="header-left">
@@ -23,15 +25,17 @@
             popper-class="slider-tooltip"
             :disabled="showSubmenu && currentSubmenuLabel === item.label"
           >
-            <div
+            <button
+              type="button"
               class="slider-item"
+              :aria-label="'导航：' + item.label"
               :class="{ active: activeMenu === item.path || (item.children && isChildActive(item)) }"
               @click="handleSliderClick(item)"
             >
               <el-icon :size="22" :color="activeMenu === item.path || (item.children && isChildActive(item)) ? '#ffffff' : '#4a90d9'">
                 <component :is="item.icon" />
               </el-icon>
-            </div>
+            </button>
           </el-tooltip>
 
           <div class="slider-divider"></div>
@@ -43,8 +47,10 @@
             placement="right"
             popper-class="slider-tooltip"
           >
-            <div
+            <button
+              type="button"
               class="slider-item"
+              :aria-label="'操作：' + btn.label + (btn.action === 'announcement' && unreadCount > 0 ? '（有 '+unreadCount+' 条未读消息）' : '')"
               :class="{ 'bottom-first': index === 0 }"
               @click="btn.handler"
             >
@@ -57,29 +63,32 @@
                 :value="unreadCount" 
                 :max="99"
                 class="msg-badge"
+                aria-hidden="true"
               />
-            </div>
+            </button>
           </el-tooltip>
         </div>
 
         <transition name="flyout">
           <div v-if="showSubmenu" class="submenu-flyout" :style="{ top: submenuTop + 'px' }">
             <div class="submenu-title">{{ currentSubmenuLabel }}</div>
-            <div
+            <button
+              type="button"
               v-for="child in currentSubmenuChildren"
               :key="child.path"
               class="submenu-item"
+              :aria-label="'子菜单：' + currentSubmenuLabel + ' / ' + child.label"
               :class="{ active: activeMenu === child.path }"
               @click="handleSubmenuClick(child)"
             >
               {{ child.label }}
-            </div>
+            </button>
           </div>
         </transition>
       </el-aside>
 
       <!-- 主内容区域：渲染各个路由页面 -->
-      <el-main class="main-content">
+      <el-main id="main-content" class="main-content" role="main">
         <router-view></router-view>
       </el-main>
     </el-container>
@@ -102,10 +111,11 @@
  * - handleAiChat：原来只弹提示，现在切换聊天面板的显隐
  */
 
-import { ref, onMounted, provide } from 'vue'
+import { ref, onMounted, onBeforeUnmount, provide } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { HomeFilled, Monitor, Document, DataAnalysis, Setting, ChatDotRound, EditPen, User, Bell, Lightning } from '@element-plus/icons-vue'
+import { getUsername, getRole } from '@/stores/auth'
 import { sendAiChat, submitFeedback, getUserProfile, getAnnouncements } from '@/api/common'
 // 引入 AI 聊天组件
 import AiChat from './AiChat.vue'
@@ -113,11 +123,12 @@ import AiChat from './AiChat.vue'
 import MessagePanel from './MessagePanel.vue'
 // 引入消息 API
 import { getUnreadCount } from '@/api/message'
+import { toastPermission } from '@/utils/messages';
 
 const router = useRouter()
 const route = useRoute()
-const username = ref(localStorage.getItem('username') || 'admin')
-const userRole = ref(localStorage.getItem('role') || 'user')
+const username = ref(getUsername() || 'admin')
+const userRole = ref(getRole() || 'user')
 const activeMenu = ref(route.path)
 const showSubmenu = ref(false)
 const currentSubmenuChildren = ref([])
@@ -140,6 +151,8 @@ provide('refreshTodoList', () => {
 })
 
 provide('todoRefreshTrigger', todoRefreshTrigger)
+// 子组件（如 Home.vue）可注入此函数，一键打开消息/待办面板
+provide('openMessagePanel', () => { showMessagePanel.value = true })
 
 // 根据角色过滤导航菜单
 const allNavItems = [
@@ -178,7 +191,7 @@ function isChildActive(item) {
 function handleSliderClick(item) {
   // 检查角色权限
   if (item.roles && !item.roles.includes(userRole.value)) {
-    ElMessage.warning('该身份暂不支持此操作')
+    toastPermission(userRole.value, item.label)
     return
   }
   if (item.children) {
@@ -201,7 +214,7 @@ function handleSubmenuClick(child) {
   // 检查父级角色权限
   const parent = allNavItems.find(n => n.children && n.children.some(c => c.path === child.path))
   if (parent && parent.roles && !parent.roles.includes(userRole.value)) {
-    ElMessage.warning('该身份暂不支持此操作')
+    toastPermission(userRole.value, `${parent.label} / ${child.label}`)
     return
   }
   activeMenu.value = child.path
@@ -217,10 +230,10 @@ function handleSubmenuClick(child) {
 async function handleAiChat() {
   showAiChat.value = !showAiChat.value
 }
-async function handleFeedback() { ElMessage.info('意见反馈功能开发中') }
+async function handleFeedback() { ElMessage.info({ message: '当前版本暂不支持意见反馈\n💡 如需反馈问题或建议，请联系系统管理员', duration: 2600, showClose: true }); }
 async function handleAccountSettings() {
   if (userRole.value !== 'admin') {
-    ElMessage.warning('该身份暂不支持此操作')
+    toastPermission(userRole.value, '系统设置 / 账户管理')
     return
   }
   router.push('/admin/settings/user')
@@ -261,11 +274,39 @@ async function loadUnreadMessages() {
   }
 }
 
+// 未读消息轮询句柄（页面切后台会暂停，组件卸载会清理，避免内存泄漏）
+let messagePollTimer = null
+const POLL_INTERVAL_MS = 60_000
+
+function startPolling() {
+  if (messagePollTimer) return
+  messagePollTimer = setInterval(loadUnreadMessages, POLL_INTERVAL_MS)
+}
+function stopPolling() {
+  if (!messagePollTimer) return
+  clearInterval(messagePollTimer)
+  messagePollTimer = null
+}
+function handleVisibilityChange() {
+  if (document.hidden) {
+    stopPolling()
+  } else {
+    // 切回前台立即拉一次（保证消息即时），再恢复轮询
+    loadUnreadMessages()
+    startPolling()
+  }
+}
+
 // 页面加载时获取未读数量
 onMounted(() => {
   loadUnreadMessages()
-  // 每60秒刷新一次未读数量
-  setInterval(loadUnreadMessages, 60000)
+  startPolling()
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+})
+
+onBeforeUnmount(() => {
+  stopPolling()
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>
 
@@ -319,7 +360,7 @@ onMounted(() => {
   justify-content: center;
   cursor: pointer;
   position: relative;
-  transition: all 0.25s ease;
+  transition: background-color var(--motion-dur-mid) var(--motion-ease), box-shadow var(--motion-dur-mid) var(--motion-ease), color var(--motion-dur-mid) var(--motion-ease);
   flex-shrink: 0;
 }
 .slider-item:hover { background-color: rgba(74, 144, 217, 0.15); }
@@ -367,12 +408,61 @@ onMounted(() => {
   font-size: 13px;
   color: #606266;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease), color var(--motion-dur-fast) var(--motion-ease), opacity var(--motion-dur-fast) var(--motion-ease);
 }
 .submenu-item:hover { background-color: #f5f7fa; color: #4a90d9; }
 .submenu-item.active { color: #4a90d9; font-weight: 500; }
 
-.flyout-enter-active, .flyout-leave-active { transition: opacity 0.2s, transform 0.2s; }
+/* ===== 可访问性：skip-link（仅键盘 Tab 聚焦显示） ===== */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 16px;
+  z-index: 99999;
+  background: #2563eb;
+  color: #fff !important;
+  padding: 10px 18px;
+  border-radius: 0 0 8px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.18s ease, top 0.18s ease;
+}
+.skip-link:focus {
+  top: 0;
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+/* ===== <button> 语义化替换：.slider-item / .submenu-item 恢复原视觉 ===== */
+.slider-item {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  font-family: inherit;
+  outline: none;
+}
+.slider-item:focus-visible {
+  outline: 2px solid #4a90d9;
+  outline-offset: 2px;
+}
+.submenu-item {
+  width: 100%;
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  line-height: 1.5;
+  outline: none;
+}
+.submenu-item:focus-visible {
+  background-color: #eaf3fd;
+  color: #4a90d9;
+}
+
+.flyout-enter-active { transition: opacity var(--motion-dur-mid) var(--motion-ease), transform var(--motion-dur-mid) var(--motion-ease); }
+.flyout-leave-active { transition: opacity var(--motion-dur-fast) var(--motion-ease-in), transform var(--motion-dur-fast) var(--motion-ease-in); }
 .flyout-enter-from, .flyout-leave-to { opacity: 0; transform: translateX(-8px); }
 
 .main-content {

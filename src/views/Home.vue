@@ -8,7 +8,7 @@
 
     <!-- 四个统计卡片 -->
     <div class="stat-row">
-      <div class="stat-card">
+      <div class="stat-card card-reveal" :ref="el => registerReveal(el, 0)">
         <div class="stat-icon stat-icon-blue">
           <el-icon :size="28"><Monitor /></el-icon>
         </div>
@@ -17,7 +17,7 @@
           <div class="stat-value">{{ stats.totalEquipment }}</div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card card-reveal" :ref="el => registerReveal(el, 1)">
         <div class="stat-icon stat-icon-green">
           <el-icon :size="28"><Connection /></el-icon>
         </div>
@@ -26,7 +26,7 @@
           <div class="stat-value">{{ stats.onlineEquipment }}</div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card card-reveal" :ref="el => registerReveal(el, 2)">
         <div class="stat-icon stat-icon-orange">
           <el-icon :size="28"><Document /></el-icon>
         </div>
@@ -35,7 +35,7 @@
           <div class="stat-value">{{ stats.todayInspections }}</div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card card-reveal" :ref="el => registerReveal(el, 3)">
         <div class="stat-icon stat-icon-gray">
           <el-icon :size="28"><Warning /></el-icon>
         </div>
@@ -47,7 +47,7 @@
     </div>
 
     <!-- 搜索栏 -->
-    <div class="search-section">
+    <div class="search-section card-reveal" :ref="el => registerReveal(el, 4)">
       <p class="search-hint">我们今天从哪里开始...</p>
       <div class="search-bar">
         <el-icon :size="20" color="#9ca3af"><Search /></el-icon>
@@ -71,7 +71,7 @@
             <el-icon :size="18" color="#4a90d9"><Bell /></el-icon>
             <span>通知公告</span>
           </div>
-          <a class="view-more">查看更多</a>
+          <button type="button" class="view-more" @click="openMessagePanel">查看更多</button>
         </div>
         <div class="notice-list" v-if="noticeList.length > 0">
           <div class="notice-item" v-for="(item, index) in noticeList" :key="index">
@@ -84,7 +84,8 @@
         </div>
         <div class="notice-empty" v-else>
           <el-icon :size="48" color="#d1d5db"><Bell /></el-icon>
-          <p>当前没有通知</p>
+          <p>当前没有新通知</p>
+          <small style="color:var(--text-sub);line-height:1.55;">通知由系统管理员发布。<br>可通过顶部「消息」按钮查看历史。</small>
         </div>
       </div>
 
@@ -99,31 +100,36 @@
         </div>
         <div class="todo-list" v-if="displayTodoList.length > 0">
           <div class="todo-item" v-for="(item, index) in displayTodoList" :key="index">
-            <div class="todo-check" @click="removeTodo(index, item)">
-              <input type="checkbox" class="todo-checkbox" />
-            </div>
-            <div class="todo-body">
-              <div class="todo-name">{{ item.name }}</div>
-              <div class="todo-date" v-if="item.deadline">截止日期：{{ item.deadline }}</div>
-            </div>
+            <input
+              type="checkbox"
+              :id="'todo-cb-' + index"
+              class="todo-checkbox"
+              :aria-label="'完成待办：' + item.name"
+              @change="removeTodo(index, item)"
+            />
+            <label class="todo-body" :for="'todo-cb-' + index">
+              <span class="todo-name">{{ item.name }}</span>
+              <span class="todo-date" v-if="item.deadline">截止日期：{{ item.deadline }}</span>
+            </label>
           </div>
         </div>
         <div class="todo-empty" v-else>
           <el-icon :size="48" color="#d1d5db"><Tickets /></el-icon>
           <p>还没有任务待办</p>
+          <small style="color:var(--text-sub);line-height:1.55;">将消息加入待办即可在此显示。<br>打开「消息」→ 选择一条消息 → 点右上角「更多」→「加入待办」。</small>
         </div>
-        <button class="todo-btn">查看全部待办</button>
+        <button type="button" class="todo-btn" aria-label="查看全部待办事项（打开消息面板）" @click="openMessagePanel">查看全部待办</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, inject, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, inject, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Monitor, Connection, Document, Warning, Tickets, Bell,
-  Setting, DataAnalysis, Search
+  Search
 } from '@element-plus/icons-vue'
 import { getDashboardStats, getTodoList } from '@/api/stats'
 import { getTodoMessages, removeTodoMessage } from '@/api/message'
@@ -131,12 +137,47 @@ import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const todoRefreshTrigger = inject('todoRefreshTrigger', ref(0))
+// MainLayout provide：空按钮绑定后，直接打开消息/待办面板
+const openMessagePanel = inject('openMessagePanel', () => {})
+
+/* ---------- 入场 reveal：IntersectionObserver 首屏触发；默认态可见，脚本失败不白屏 ---------- */
+const revealEls = new Map();
+let revealObserver = null;
+function registerReveal(el, idx) {
+  if (!el) return;
+  revealEls.set(idx, el);
+  if (revealObserver) {
+    el.classList.add('is-reveal-hidden');
+    revealObserver.observe(el);
+  }
+}
+function setupReveal() {
+  if (typeof IntersectionObserver === 'undefined') return;
+  revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      const order = [...revealEls.values()].indexOf(el);
+      el.style.transitionDelay = (order >= 0 ? (order * 80) : 0) + 'ms';
+      requestAnimationFrame(() => {
+        el.classList.remove('is-reveal-hidden');
+        setTimeout(() => { el.style.transitionDelay = ''; }, 500);
+      });
+      revealObserver.unobserve(el);
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -20px 0px' });
+  revealEls.forEach((el) => {
+    el.classList.add('is-reveal-hidden');
+    revealObserver.observe(el);
+  });
+}
+onBeforeUnmount(() => { if (revealObserver) revealObserver.disconnect(); })
 
 const searchKeyword = ref('')
 
 function handleSearch() {
   if (!searchKeyword.value.trim()) {
-    ElMessage.warning('请输入搜索内容')
+    ElMessage.warning({ message: '请输入要向 AI 咨询的关键词后再搜索\n💡 例如：2026年8月设备总数统计、巡检异常记录查询', duration: 3000, showClose: true })
     return
   }
   router.push({
@@ -191,7 +232,7 @@ async function removeTodo(index, item) {
     localStorage.setItem(key, JSON.stringify(filtered))
   }
 
-  ElMessage.success('已完成该待办事项')
+  ElMessage.success({ message: '✓ 已完成该待办，已从清单中移除', duration: 1800, grouping: true })
 }
 
 async function loadData() {
@@ -262,7 +303,7 @@ function getLocalTodoMessages() {
   }
 }
 
-onMounted(() => { loadData() })
+onMounted(() => { setupReveal(); loadData(); })
 watch(todoRefreshTrigger, () => { loadData() })
 </script>
 
@@ -310,12 +351,17 @@ watch(todoRefreshTrigger, () => { loadData() })
   display: flex;
   align-items: center;
   gap: 16px;
-  transition: all 0.2s;
+  transition: transform var(--motion-dur-mid) var(--motion-ease), box-shadow var(--motion-dur-mid) var(--motion-ease);
   cursor: pointer;
 }
 .stat-card:hover {
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.1);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.stat-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--brand-primary), var(--shadow-md);
+  transform: translateY(-1px);
 }
 .stat-icon {
   width: 56px;
@@ -367,7 +413,7 @@ watch(todoRefreshTrigger, () => { loadData() })
   border-radius: 16px;
   padding: 20px 20px !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s;
+  transition: border-color var(--motion-dur-mid) var(--motion-ease), box-shadow var(--motion-dur-mid) var(--motion-ease);
 }
 .search-bar:focus-within {
   border-color: #3b82f6;
@@ -393,7 +439,7 @@ watch(todoRefreshTrigger, () => { loadData() })
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color var(--motion-dur-mid) var(--motion-ease), color var(--motion-dur-mid) var(--motion-ease), transform var(--motion-dur-mid) var(--motion-ease), box-shadow var(--motion-dur-mid) var(--motion-ease);
 }
 .search-btn:hover {
   transform: translateY(-1px);
@@ -434,8 +480,18 @@ watch(todoRefreshTrigger, () => { loadData() })
   font-size: 14px;
   color: #2563eb;
   cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  text-decoration: none;
 }
 .view-more:hover { text-decoration: underline; }
+.view-more:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 
 /* 通知公告 */
 .notice-list {
@@ -502,24 +558,38 @@ watch(todoRefreshTrigger, () => { loadData() })
 }
 .todo-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   padding: 14px 16px;
   background: #f8fafc;
   border-radius: 12px;
 }
-.todo-check { flex-shrink: 0; padding-top: 2px; }
 .todo-checkbox {
+  flex-shrink: 0;
   width: 18px;
   height: 18px;
+  margin: 0;
   cursor: pointer;
+  accent-color: #2563eb;
 }
-.todo-body { flex: 1; }
+.todo-checkbox:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+.todo-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  min-width: 0;
+}
 .todo-name {
   font-size: 14px;
   font-weight: 500;
   color: #111827;
   margin-bottom: 4px;
+  line-height: 1.45;
+  word-break: break-word;
 }
 .todo-date {
   font-size: 13px;
@@ -548,23 +618,28 @@ watch(todoRefreshTrigger, () => { loadData() })
   color: #6b7280;
   font-size: 14px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 .todo-btn:hover {
   background: #f9fafb;
   border-color: #d1d5db;
 }
 
-@media (max-width: 1400px) {
-  .shortcut-row { grid-template-columns: repeat(3, 1fr); }
+/* ---------- card-reveal 入场过渡（reduced-motion 被 style.css 全局覆盖） ---------- */
+.card-reveal {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--motion-dur-slow) var(--motion-ease), transform var(--motion-dur-slow) var(--motion-ease);
+  will-change: opacity, transform;
 }
+.card-reveal.is-reveal-hidden { opacity: 0; transform: translateY(8px); }
+
 @media (max-width: 1100px) {
   .stat-row { grid-template-columns: repeat(2, 1fr); }
   .bottom-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 700px) {
   .home { padding: 16px; }
-  .shortcut-row { grid-template-columns: repeat(2, 1fr); }
   .stat-row { grid-template-columns: 1fr; }
   .banner-title { font-size: 24px; }
 }

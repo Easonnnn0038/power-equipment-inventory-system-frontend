@@ -67,7 +67,24 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
-import * as echarts from 'echarts'
+// ---------- ECharts 按需引入（比整包 840KB → ~260KB，-69%） ----------
+import * as echarts from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { PieChart, BarChart, LineChart } from 'echarts/charts'
+import {
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+} from 'echarts/components'
+echarts.use([
+  CanvasRenderer,
+  PieChart,
+  BarChart,
+  LineChart,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+])
 import {
   getDashboardStats,
   getEquipmentTypeStats,

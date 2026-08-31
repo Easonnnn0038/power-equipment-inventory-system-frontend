@@ -193,12 +193,14 @@
  */
 
 import { ref, computed, onMounted } from 'vue'
+import { getRole } from '@/stores/auth'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
-const userRole = localStorage.getItem('role') || 'user'
+const userRole = getRole()
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getInspectionList, getInspectionById, updateInspection, deleteInspection } from '@/api/inspection'
+import { toastPermission, confirmDestructive } from '@/utils/messages';
 
 // 表格加载状态
 const loading = ref(false)
@@ -300,10 +302,10 @@ async function handleViewDetail(row) {
  */
 function handleEdit(row) {
   if (userRole !== 'admin') {
-    ElMessage.warning('该身份暂不支持此操作')
+    toastPermission(userRole, '编辑已提交的巡检记录')
     return
   }
-  ElMessage.info('编辑功能待完善')
+  ElMessage.info({ message: '当前版本暂不支持巡检记录编辑\n💡 如需修改，可删除后重新提交', duration: 2800, showClose: true })
 }
 
 /**
@@ -311,15 +313,20 @@ function handleEdit(row) {
  */
 async function handleDelete(row) {
   if (userRole !== 'admin') {
-    ElMessage.warning('该身份暂不支持此操作')
+    toastPermission(userRole, '删除巡检记录')
     return
   }
   try {
-    await ElMessageBox.confirm('确定删除该巡检记录？', '提示', { type: 'warning' })
+    await confirmDestructive({
+      title: '删除巡检记录',
+      body: '此操作将永久删除该巡检记录（含现场照片、检查项数据、巡检人信息），删除后无法恢复。确定要删除吗？',
+      confirmText: '永久删除该记录',
+      cancelText: '保留记录',
+    })
     await deleteInspection(row.id)
-    ElMessage.success('删除成功')
+    ElMessage.success({ message: '✓ 已删除该巡检记录', duration: 1600, grouping: true })
     loadData()
-  } catch {}
+  } catch (e) { /* 取消 */ }
 }
 
 // 页面挂载时加载数据
@@ -435,7 +442,7 @@ onMounted(() => {
   padding: 12px 16px !important;
   background: #fff !important;
   border-radius: 8px !important;
-  border-left: 3px solid #409eff !important;
+  box-shadow: inset 1px 0 0 var(--accent, #409eff); padding-left: 15px !important;
 }
 
 .detail-label {
@@ -463,7 +470,7 @@ onMounted(() => {
   padding: 12px 16px !important;
   background: #fff !important;
   border-radius: 8px !important;
-  transition: all 0.2s !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease !important;
 }
 
 .detail-check-item.checked {
@@ -548,7 +555,7 @@ onMounted(() => {
   border-radius: 8px !important;
   border: 1px solid #ebeef5 !important;
   cursor: pointer !important;
-  transition: all 0.2s !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease !important;
 }
 
 .detail-image:hover {

@@ -1,20 +1,19 @@
 /**
  * Axios 请求封装模块
- * 
+ *
  * 功能说明：
  * 1. 创建 axios 实例，统一配置 baseURL 和超时时间
  * 2. 请求拦截器：自动从 localStorage 获取 token 并添加到请求头
  * 3. 响应拦截器：统一处理业务错误（code !== 200）和 HTTP 错误
  * 4. 401 未授权时自动清除登录状态并跳转到登录页
- * 
- * 使用方式：
- * import request from './request'
- * request.get('/api/xxx') 或 request.post('/api/xxx', data)
+ *    - 注意：本地模式（token 以 'local-token-' 开头）下不做踢回处理，避免后端接口不可用时被反复踢登录
  */
 
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { networkErrorMessage } from '@/utils/messages'
 import router from '@/router'
+import { getToken, clearAuth, isLocalMode } from '@/stores/auth'
 
 const request = axios.create({
   baseURL: '/api',
@@ -24,7 +23,7 @@ const request = axios.create({
 // 请求拦截器：自动携带 token
 request.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -42,9 +41,14 @@ request.interceptors.response.use(
     }
     const res = response.data
     if (res.code !== 200) {
-      // 调试用：在控制台输出完整错误信息，方便定位后端问题
       console.error('[API ERROR]', response.config.url, res)
-      ElMessage.error(res.message || '请求失败')
+      // 本地模式下：后端业务错误只在控制台打印，不弹窗骚扰用户
+      if (isLocalMode()) {
+        console.warn('[Local Mode] 后端业务错误已忽略：', res.message || res.code)
+      } else {
+        const bm = networkErrorMessage(res);
+        ElMessage.error({ message: `业务处理失败：${res.message || bm.fact}\n💡 ${bm.action}`, duration: 3400, showClose: true, grouping: true })
+      }
       return Promise.reject(new Error(res.message || '请求失败'))
     }
     return res
@@ -56,14 +60,25 @@ request.interceptors.response.use(
     } else {
       console.error('[NETWORK ERROR]', error.config?.url, error.message)
     }
+
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('username')
-      localStorage.removeItem('role')
-      router.push('/login')
-      ElMessage.error('登录已过期，请重新登录')
+      // 本地模式下：后端 401（token 校验失败）属于预期行为，不清 token，不跳登录
+      if (isLocalMode()) {
+        console.warn('[Local Mode] 忽略 401，保留本地登录态')
+      } else {
+        clearAuth()
+        router.push('/login')
+        const e401 = networkErrorMessage({ status: 401 });
+        ElMessage.warning({ message: `⚠ ${e401.fact}\n💡 ${e401.action}`, duration: 3200, showClose: true })
+      }
     } else {
-      ElMessage.error(error.message || '网络错误')
+      // 本地模式下：500/网络错误只在控制台打印，不弹窗骚扰
+      if (isLocalMode()) {
+        console.warn('[Local Mode] 请求失败已忽略：', error.message)
+      } else {
+        const ne = networkErrorMessage(error);
+        ElMessage.error({ message: `✗ ${ne.fact}${ne.reason ? ' — ' + ne.reason : ''}\n💡 ${ne.action}`, duration: 4000, showClose: true, grouping: true })
+      }
     }
     return Promise.reject(error)
   }

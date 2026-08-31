@@ -2,7 +2,7 @@
   <div class="ai-chat-page">
     <div class="ai-chat-page-header">
       <div class="header-left">
-        <el-icon :size="22" color="#4a90d9"><ChatDotRound /></el-icon>
+        <el-icon :size="22" :style="{ color: 'var(--brand-secondary)' }"><ChatDotRound /></el-icon>
         <span class="header-title">AI 助手</span>
         <span class="header-sub">电力设备台账管理系统智能问答</span>
       </div>
@@ -129,7 +129,7 @@ async function sendMessage() {
   } catch (err) {
     const errorMsg = 'AI 助手暂时无法响应，请稍后再试。'
     messages.value.push({ role: 'ai', content: errorMsg })
-    ElMessage.error(errorMsg)
+    ElMessage.error({ message: `AI 助手暂时无法响应：${errorMsg}\n💡 建议检查网络，5 秒后重试；或换用更具体的关键词（如"2026年8月巡检异常统计"）`, duration: 4200, showClose: true, grouping: true })
   } finally {
     loading.value = false
     scrollToBottom()
@@ -157,14 +157,14 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 60px);
-  background: #f5f7fa;
+  background: var(--surface-subtle);
 }
 
 .ai-chat-page-header {
   height: 60px;
   padding: 0 24px;
-  background: #ffffff;
-  border-bottom: 1px solid #ebeef5;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-soft);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -180,15 +180,15 @@ onMounted(() => {
 .header-title {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-1);
 }
 
 .header-sub {
   font-size: 13px;
-  color: #909399;
+  color: var(--text-4);
   margin-left: 8px;
   padding-left: 12px;
-  border-left: 1px solid #dcdfe6;
+  border-left: 1px solid var(--border);
 }
 
 .ai-chat-page-body {
@@ -217,11 +217,11 @@ onMounted(() => {
 .welcome-section h2 {
   margin: 0 0 8px;
   font-size: 24px;
-  color: #303133;
+  color: var(--text-1);
 }
 
 .welcome-desc {
-  color: #909399;
+  color: var(--text-4);
   margin: 0 0 32px;
   font-size: 14px;
 }
@@ -236,20 +236,20 @@ onMounted(() => {
 
 .quick-btn {
   padding: 12px 16px;
-  background: #ffffff;
-  border: 1px solid #e4e7ed;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 14px;
-  color: #303133;
+  color: var(--text-1);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   text-align: left;
 }
 
 .quick-btn:hover {
-  border-color: #4a90d9;
-  background: #ecf5ff;
-  color: #4a90d9;
+  border-color: var(--brand-secondary);
+  background: var(--el-color-primary-light-9);
+  color: var(--brand-secondary);
 }
 
 .message-item {
@@ -278,16 +278,16 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: var(--text-inverse);
   flex-shrink: 0;
 }
 
 .ai-avatar {
-  background: #607d8b;
+  background: var(--text-3);
 }
 
 .user-avatar {
-  background: #4a90d9;
+  background: var(--brand-secondary);
 }
 
 .bubble {
@@ -301,15 +301,15 @@ onMounted(() => {
 }
 
 .ai-bubble {
-  background: #ffffff;
-  color: #303133;
-  border: 1px solid #ebeef5;
+  background: var(--surface);
+  color: var(--text-1);
+  border: 1px solid var(--border-soft);
   border-top-left-radius: 4px;
 }
 
 .user-bubble {
-  background: #4a90d9;
-  color: #ffffff;
+  background: var(--brand-secondary);
+  color: var(--text-inverse);
   border-top-right-radius: 4px;
 }
 
@@ -324,22 +324,22 @@ onMounted(() => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #909399;
-  animation: bounce 1.4s infinite ease-in-out both;
+  background: var(--text-4);
+  animation: dot-pulse 1.4s var(--motion-ease) infinite both;
 }
 
 .thinking .dot:nth-child(1) { animation-delay: -0.32s; }
 .thinking .dot:nth-child(2) { animation-delay: -0.16s; }
 
-@keyframes bounce {
+@keyframes dot-pulse {
   0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
   40% { transform: scale(1); opacity: 1; }
 }
 
 .ai-chat-page-footer {
   padding: 16px 24px 20px;
-  background: #ffffff;
-  border-top: 1px solid #ebeef5;
+  background: var(--surface);
+  border-top: 1px solid var(--border-soft);
   flex-shrink: 0;
 }
 
@@ -362,8 +362,8 @@ onMounted(() => {
   align-items: center;
   gap: 4px;
   padding: 10px 20px;
-  background: #4a90d9;
-  color: #ffffff;
+  background: var(--brand-secondary);
+  color: var(--text-inverse);
   border: none;
   border-radius: 10px;
   font-size: 14px;
@@ -373,17 +373,17 @@ onMounted(() => {
 }
 
 .send-btn:hover:not(:disabled) {
-  background: #3a7bc8;
+  background: var(--brand-primary);
 }
 
 .send-btn:disabled {
-  background: #c0c4cc;
+  background: var(--text-4);
   cursor: not-allowed;
 }
 
 .input-hint {
   text-align: center;
-  color: #c0c4cc;
+  color: var(--text-4);
   font-size: 12px;
   margin: 8px 0 0;
 }
@@ -393,7 +393,7 @@ onMounted(() => {
 }
 
 .ai-chat-page-body::-webkit-scrollbar-thumb {
-  background: #c0c4cc;
+  background: var(--text-4);
   border-radius: 3px;
 }
 

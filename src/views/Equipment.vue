@@ -116,7 +116,7 @@
 </template>
 
 <script setup>
-const userRole = localStorage.getItem('role') || 'user'
+const userRole = getRole()
 /**
  * 设备台账管理脚本逻辑
  * 
@@ -132,9 +132,11 @@ const userRole = localStorage.getItem('role') || 'user'
  */
 
 import { ref, onMounted } from 'vue'
+import { getRole } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getEquipmentList, createEquipment, updateEquipment, deleteEquipment, searchEquipmentByName, searchEquipmentByType, searchEquipmentByStatus } from '@/api/equipment'
 import { exportEquipmentExcel, importEquipment } from '@/api/equipment'
+import { confirmDestructive } from '@/utils/messages';
 
 // 表格加载状态
 const loading = ref(false)
@@ -237,7 +239,12 @@ function handleEdit(row) { editingId.value = row.id; form.value = { ...row }; sh
  */
 async function handleDelete(row) {
   try {
-    await ElMessageBox.confirm('确定删除设备「' + row.equipmentName + '」？', '提示', { type: 'warning' })
+    await confirmDestructive({
+      title: '删除设备',
+      body: '此操作将从台账中移除设备「' + row.equipmentName + '」（编号：' + (row.equipmentCode || '—') + '），相关巡检记录的历史快照不受影响。确定删除吗？',
+      confirmText: '删除此设备',
+      cancelText: '保留该设备',
+    })
     await deleteEquipment(row.id)
     ElMessage.success('删除成功')
     loadData()
@@ -273,7 +280,7 @@ async function handleExport() {
     window.URL.revokeObjectURL(url)
     ElMessage.success('导出成功')
   } catch {
-    ElMessage.error('导出失败')
+    ElMessage.error({ message: '导出失败：后端未响应或权限不足\n💡 请稍后重试；如重复出现请联系管理员', duration: 3800, showClose: true })
   }
 }
 
@@ -282,7 +289,7 @@ function handleFileChange(file) {
 }
 
 async function handleImport() {
-  if (!importFile.value) { ElMessage.warning('请先选择文件'); return }
+  if (!importFile.value) { ElMessage.warning({ message: '请先选择要导入的台账文件\n💡 支持 .xlsx / .xls / .csv，建议先下载模板再填写', duration: 3000, showClose: true }); return }
   importing.value = true
   try {
     const res = await importEquipment(importFile.value)
@@ -291,7 +298,7 @@ async function handleImport() {
     importFile.value = null
     loadData()
   } catch {
-    ElMessage.error('导入失败')
+    ElMessage.error({ message: `导入失败：${e?.response?.data?.message || '文件格式或字段错误'}\n💡 请确认 Excel/CSV 字段与模板一致，或减少一次性导入的数据量`, duration: 4600, showClose: true, grouping: true })
   } finally {
     importing.value = false
   }

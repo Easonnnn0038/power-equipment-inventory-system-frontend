@@ -109,7 +109,7 @@
               <el-icon 
                 class="delete-icon" 
                 :class="{ 'delete-icon-disabled': msg.readStatus === 0 }"
-                :title="msg.readStatus === 1 ? '删除' : '请先标记已读后删除'"
+                :title="msg.readStatus === 1 ? '删除这条消息' : '尚未阅读，点击将先自动标记为已读再删除'"
                 @click="handleDelete(msg)"
               >
                 <Delete />
@@ -218,11 +218,13 @@
  */
 
 import { ref, reactive, computed, watch } from 'vue'
+import { getRole } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Bell, Close, Check, Delete, Plus, EditPen,
   Warning, BellFilled, Document, Ticket
 } from '@element-plus/icons-vue'
+import { confirmDestructive } from '@/utils/messages';
 import {
   getMessageList, getUnreadCount, markAsRead,
   markAllAsRead, deleteMessage, publishMessage, addTaskToTodo
@@ -239,7 +241,7 @@ const emit = defineEmits(['update:visible', 'unread-update', 'todo-update'])
 // ==================== 数据定义 ====================
 
 // 当前登录用户角色
-const currentUserRole = ref(localStorage.getItem('role') || 'user')
+const currentUserRole = ref(getRole() || 'user')
 const isAdmin = computed(() => currentUserRole.value === 'admin' || currentUserRole.value === '1')
 
 // 加载状态
@@ -559,7 +561,7 @@ function handlePublish() {
  */
 async function savePublish() {
   if (!publishForm.title || !publishForm.content) {
-    ElMessage.warning('请填写标题和内容')
+    ElMessage.warning({ message: '发布前请完整填写\n💡 「标题」3-30 字概括主题，「内容」填写具体说明', duration: 2800, showClose: true })
     return
   }
 
@@ -575,7 +577,7 @@ async function savePublish() {
     loadMessages()
     loadUnreadCount()
   } catch (e) {
-    ElMessage.error('发布失败，请稍后重试')
+    ElMessage.error({ message: `发布失败：${e?.response?.data?.message || e?.message || '服务器暂未响应'}\n💡 建议 30 秒后重试，或减少内容长度`, duration: 4000, showClose: true, grouping: true })
   }
 }
 
@@ -685,7 +687,7 @@ watch(() => props.visible, (val) => {
   color: #606266;
   cursor: pointer;
   position: relative;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -914,18 +916,12 @@ watch(() => props.visible, (val) => {
   flex-shrink: 0;
 }
 
-/* 动画 */
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.3s;
-}
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
-}
+/* 动画（token 化 + Exit faster） */
+.fade-enter-active { transition: opacity var(--motion-dur-mid) var(--motion-ease); }
+.fade-leave-active { transition: opacity var(--motion-dur-fast) var(--motion-ease-in); }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
-.slide-right-enter-active, .slide-right-leave-active {
-  transition: transform 0.3s ease;
-}
-.slide-right-enter-from, .slide-right-leave-to {
-  transform: translateX(100%);
-}
+.slide-right-enter-active { transition: transform var(--motion-dur-slow) var(--motion-ease), opacity var(--motion-dur-slow) var(--motion-ease); }
+.slide-right-leave-active { transition: transform var(--motion-dur-mid) var(--motion-ease-in), opacity var(--motion-dur-mid) var(--motion-ease-in); }
+.slide-right-enter-from, .slide-right-leave-to { transform: translateX(100%); opacity: 0; }
 </style>

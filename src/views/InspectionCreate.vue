@@ -570,23 +570,23 @@ function handleFileRemove(file, fileList) {
  */
 function validateForm() {
   if (!form.value.equipmentId) {
-    ElMessage.warning('请选择巡检设备')
+    ElMessage.warning({ message: '请选择巡检设备\n💡 在上方「巡检设备」下拉中选择一项后再提交', duration: 2800, showClose: true, grouping: true })
     return false
   }
   if (!form.value.inspectionPlanId) {
-    ElMessage.warning('请选择巡检计划')
+    ElMessage.warning({ message: '请选择巡检计划\n💡 在「巡检计划」下拉中选择；若为空列表，请联系管理员创建对应巡检计划后再操作', duration: 2800, showClose: true, grouping: true })
     return false
   }
   if (!form.value.inspectionDate) {
-    ElMessage.warning('请选择巡检日期')
+    ElMessage.warning({ message: '请选择巡检日期\n💡 在上方「巡检日期」日期选择器中选择；注意巡检日期不能晚于今日（系统已做限制）', duration: 2800, showClose: true, grouping: true })
     return false
   }
   if (!form.value.inspectorId) {
-    ElMessage.warning('请选择巡检人')
+    ElMessage.warning({ message: '请选择巡检人\n💡 在「巡检人员」下拉中选择；巡检人员来源于系统设置 → 账户管理中已启用的巡检人员身份账号', duration: 2800, showClose: true, grouping: true })
     return false
   }
   if (!form.value.inspectionResult) {
-    ElMessage.warning('请选择巡检结果')
+    ElMessage.warning({ message: '请选择巡检结果\n💡 在「巡检结果」中选择（正常或异常）；若选择「异常」请在下栏填写异常描述并上传现场照片以便后续复核', duration: 2800, showClose: true, grouping: true })
     return false
   }
   return true
@@ -628,7 +628,7 @@ async function handleSubmit() {
     }, 1000)
   } catch (e) {
     console.error('提交失败', e)
-    ElMessage.error('提交失败，请重试')
+    ElMessage.error({ message: `提交失败：${(e?.response?.data?.message) || (e?.message) || '服务器暂未响应'}\n💡 建议 30 秒后重试，或切换到草稿稍后再提交`, duration: 4200, showClose: true, grouping: true })
   } finally {
     submitting.value = false
   }
@@ -638,7 +638,7 @@ async function handleSubmit() {
  * 保存草稿
  */
 function saveDraft() {
-  ElMessage.info('草稿保存功能开发中')
+  ElMessage.info({ message: '当前版本暂不支持草稿保存\n💡 建议先把已填内容写入巡检备注，提交后再从该记录复制补充', duration: 3000, showClose: true })
 }
 
 // 页面挂载时加载数据
@@ -729,7 +729,7 @@ onMounted(async () => {
   display: flex !important;
   align-items: center !important;
   gap: 12px !important;
-  transition: all 0.3s !important;
+  transition: background-color 0.3s ease, color 0.3s ease !important;
 }
 
 .step-item.active .step-icon {
@@ -756,7 +756,7 @@ onMounted(async () => {
   font-size: 14px !important;
   font-weight: 600 !important;
   color: #909399 !important;
-  transition: all 0.3s !important;
+  transition: color 0.3s ease !important;
 }
 
 .step-info .step-title {
@@ -780,7 +780,7 @@ onMounted(async () => {
   height: 2px !important;
   background: #dcdfe6 !important;
   margin: 0 13px !important;
-  transition: all 0.3s !important;
+  transition: background-color 0.3s ease !important;
 }
 
 .step-line.completed {
@@ -992,7 +992,7 @@ onMounted(async () => {
   border: 2px solid #e4e7ed !important;
   border-radius: 12px !important;
   cursor: pointer !important;
-  transition: all 0.3s !important;
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease !important;
 }
 
 .result-card:hover {
@@ -1082,7 +1082,7 @@ onMounted(async () => {
   background: #f8f9fb !important;
   border-radius: 8px !important;
   cursor: pointer !important;
-  transition: all 0.2s !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease !important;
 }
 
 .check-item:hover {
@@ -1103,7 +1103,7 @@ onMounted(async () => {
   justify-content: center !important;
   font-size: 12px !important;
   color: #fff !important;
-  transition: all 0.2s !important;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease !important;
 }
 
 .checkbox.checked {
@@ -1257,7 +1257,7 @@ onMounted(async () => {
   padding: 21px 22px !important;
   background: #f8f9fb !important;
   border-radius: 8px !important;
-  transition: all 0.2s !important;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease !important;
 }
 
 .recent-item:hover {

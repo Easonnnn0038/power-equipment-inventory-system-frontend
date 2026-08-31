@@ -65,12 +65,12 @@ async function loadRoles() {
 /**
  * 编辑角色（待完善）
  */
-function handleEdit(row) { ElMessage.info('编辑功能待完善') }
+function handleEdit(row) { ElMessage.info({ message: `当前版本暂不支持编辑角色「${row.name}」\n💡 如需调整权限，可先删除后重新创建角色，或联系管理员处理`, duration: 3200, showClose: true }); }
 
 /**
  * 删除角色（待完善）
  */
-function handleDelete(row) { ElMessage.info('删除功能待完善') }
+function handleDelete(row) { ElMessage.info({ message: `当前版本暂不支持删除角色「${row.name}」\n💡 如该角色已绑定用户，请先转移或删除对应用户后再操作`, duration: 3200, showClose: true }); }
 
 // 页面挂载时加载角色列表
 onMounted(loadRoles)

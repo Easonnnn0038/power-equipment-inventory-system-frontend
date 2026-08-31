@@ -214,6 +214,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Edit, Lock, Delete, Phone, Message, SwitchButton, Check } from '@element-plus/icons-vue'
 import request from '@/api/request'
+import { confirmDestructive, FORM } from '@/utils/messages';
 
 // ==================== 数据定义 ====================
 
@@ -384,15 +385,15 @@ function handleChangePassword(user) {
 async function savePassword() {
   // 简单校验
   if (!passwordForm.oldPassword || !passwordForm.newPassword) {
-    ElMessage.warning('请填写完整信息')
+    ElMessage.warning({ message: FORM.required('个人信息').fact + '（真实姓名、手机号、邮箱为必填校验字段）\n💡 请补充后再次保存', duration: 2600, showClose: true })
     return
   }
   if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-    ElMessage.warning('两次输入的新密码不一致')
+    ElMessage.warning({ message: FORM.match('新密码', '确认密码').fact + '\n💡 ' + FORM.match('新密码', '确认密码').action, duration: 2600, showClose: true })
     return
   }
   if (passwordForm.newPassword.length < 6) {
-    ElMessage.warning('新密码长度不能少于6位')
+    ElMessage.warning({ message: FORM.minLen('新密码', 6).fact + '\n💡 ' + FORM.minLen('新密码', 6).action, duration: 2600, showClose: true })
     return
   }
 
@@ -475,7 +476,7 @@ function handleAddUser() {
  */
 async function saveAdd() {
   if (!addForm.username || !addForm.password) {
-    ElMessage.warning('用户名和密码为必填项')
+    ElMessage.warning({ message: '创建用户失败：请填写必填项\n💡 「用户名」为登录账号，「密码」至少 6 位', duration: 3000, showClose: true })
     return
   }
 
@@ -544,7 +545,7 @@ onMounted(() => {
 /* 用户卡片 */
 .user-card {
   border-radius: 12px;
-  transition: all 0.3s ease;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, background-color 0.3s ease;
   border: 1px solid #ebeef5;
 }
 
