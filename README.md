@@ -3,19 +3,7 @@
 
 ---
 
-## 🎯 项目定位
 
-同类简历里的「管理后台项目」通常做到「设备 CRUD + 一张图表」就结束了；本项目是**不可替代的全栈能力证明**：
-
-| 能力维度 | 证明内容 |
-|---|---|
-| 🛡️ **权限系统深度** | 角色三态 × **4 层拦截**（路由守卫 / 侧栏过滤 / 子菜单 / 按钮级）；拒绝文案是**结构化 3 段式 Toast**（事实陈述 + 身份范围 + 恢复建议），绝非一句「暂不支持此操作」 |
-| 🤖 **AI 不是装饰** | 首页巨型搜索栏直接接入 AI Chat 全屏页；AI 悬浮球 + 独立全页双入口；思考态 `dot-pulse` 动效 + 错误重试建议 |
-| 📊 **统计大屏不敷衍** | ECharts Core + 手动按需注册图表（Pie / Bar / Line / Gauge），体积比全量引入少 69% |
-| 🔌 **后端宕机也能演示** | 本地 Fallback 登录 + `request.js` `isLocalMode()` 守卫，现场演示零翻车 |
-| 🧹 **代码可被审计** | 通过 `impeccable` 审计工具 6 阶段全量整改（distill → adapt → optimize → harden → animate → clarify），核心文件 detector 扫描零缺陷 |
-
----
 
 ## 🏗️ 技术栈亮点
 
@@ -127,14 +115,3 @@ power-equipment-inventory-system-frontend/
 
 ---
 
-## 💡 面试常见问题 & 项目延伸建议
-
-1. **「为什么不直接用 Vuex？」** → Pinia 是 Vue 3 官方推荐，API 更轻 + TypeScript 原生支持 + 无 mutations 样板代码。
-2. **「ECharts 按需引入比全 import 小多少？」** → 实测 build 产物 echarts chunk：650KB → 200KB（↓69%）。
-3. **「后端挂了前端怎么办？」** → request.js 拦截 401 + ERR_NETWORK 时豁免清 token + 跳转，localStorage 兜底展示上次数据。
-4. **「权限系统如何扩展到 RBAC+？」** → Role-Permission 表已建好，后续加数据权限（组织架构维度）仅需在 MyBatis 拦截器拼接 SQL。
-5. **「下一步加分会做什么功能？」** → 建议：① 巡检图片 OCR 自动提取编号 ② WebSocket 实时告警推送 ③ 离线巡检 Service Worker PWA。
-
----
-
-*本 README 是简历项目展示专用文档。前后端代码、SQL 初始化脚本、API 测试脚本请参见同仓库对应文件。*
