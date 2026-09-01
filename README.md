@@ -1,7 +1,5 @@
 # 电力设备台账管理系统 · 前端
 
-> **Resume-grade enterprise platform · Vue 3 + Element Plus + Vite**
-> 「数据 + AI + 巡检 三位一体」的电力资产全生命周期演示平台 — 除基础 CRUD 外，还具备 **角色权限体系 / 数据可视化 / AI 助手 / 离线 fallback 登录 / 6 阶段代码质量审计** 五大亮点，5 分钟内震撼面试技术官。
 
 ---
 
